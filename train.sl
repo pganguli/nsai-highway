@@ -24,6 +24,7 @@ echo "=== Job ${SLURM_JOB_ID} started $(date) ==="
 echo "Node:  $(hostname)"
 echo "GPU:   $(nvidia-smi --query-gpu=name,memory.total --format=csv,noheader 2>/dev/null || echo 'n/a')"
 echo "Python: $(${PYTHON} --version)"
+echo "CUDA:  $(${PYTHON} -c 'import torch; print(torch.cuda.is_available(), torch.version.cuda)')"
 
 # ── training ──────────────────────────────────────────────────────────────────
 # AGENT defaults to "all"; override with --export=AGENT=neural or =neurosymbolic
