@@ -1,0 +1,253 @@
+"""
+Generate comparison figures from saved results.
+
+Figures produced (saved to results/figures/)
+--------------------------------------------
+  fig1_training_curves.png   Episode reward vs training timestep
+                             (neural vs neurosymbolic)
+  fig2_bar_comparison.png    Bar charts: reward / speed / crash rate
+                             for all three agents
+  fig3_shield_override.png   Shield override rate over training
+                             (neurosymbolic only)
+
+Usage
+-----
+  python plot_results.py
+"""
+
+import json
+import os
+
+import matplotlib
+
+matplotlib.use("Agg")  # headless rendering
+import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
+import numpy as np
+
+FIGURES_DIR = "results/figures"
+COLORS = {
+    "neural": "#E74C3C",  # red
+    "symbolic": "#2ECC71",  # green
+    "neurosymbolic": "#3498DB",  # blue
+}
+LABELS = {
+    "neural": "Pure Neural (DQN)",
+    "symbolic": "Pure Symbolic (FSM)",
+    "neurosymbolic": "NeuroSymbolic (Shielded DQN)",
+}
+
+
+def load_json(path: str) -> dict | None:
+    if not os.path.exists(path):
+        print(f"[SKIP] {path} not found")
+        return None
+    with open(path) as f:
+        return json.load(f)
+
+
+# ── Fig 1: training curves ────────────────────────────────────────────────────
+
+
+def plot_training_curves() -> None:
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.5))
+
+    for agent in ("neural", "neurosymbolic"):
+        data = load_json(f"results/{agent}_train_curve.json")
+        if data is None:
+            continue
+        curve = data["curve"]
+        xs = [p["timestep"] for p in curve]
+        means = [p["mean_reward"] for p in curve]
+        stds = [p["std_reward"] for p in curve]
+        crashes = [p["crash_rate"] for p in curve]
+        col = COLORS[agent]
+        label = LABELS[agent]
+
+        ax = axes[0]
+        ax.plot(xs, means, color=col, label=label, linewidth=2)
+        ax.fill_between(
+            xs,
+            [m - s for m, s in zip(means, stds)],
+            [m + s for m, s in zip(means, stds)],
+            color=col,
+            alpha=0.2,
+        )
+
+        ax = axes[1]
+        ax.plot(xs, crashes, color=col, label=label, linewidth=2)
+
+    for ax, title, ylabel in zip(
+        axes,
+        ["Reward during training", "Crash rate during training"],
+        ["Mean episode reward", "Crash rate"],
+    ):
+        ax.set_xlabel("Training timesteps")
+        ax.set_ylabel(ylabel)
+        ax.set_title(title)
+        ax.legend(fontsize=9)
+        ax.xaxis.set_major_formatter(
+            ticker.FuncFormatter(lambda x, _: f"{x / 1000:.0f}k")
+        )
+        ax.grid(True, alpha=0.3)
+
+    fig.suptitle(
+        "Training Progress: Neural vs NeuroSymbolic", fontsize=13, fontweight="bold"
+    )
+    fig.tight_layout()
+    path = os.path.join(FIGURES_DIR, "fig1_training_curves.png")
+    fig.savefig(path, dpi=150)
+    print(f"Saved {path}")
+    plt.close(fig)
+
+
+# ── Fig 2: bar comparison ─────────────────────────────────────────────────────
+
+
+def plot_bar_comparison() -> None:
+    summary = load_json("results/summary.json")
+    if summary is None:
+        return
+
+    agents = [a for a in ("neural", "symbolic", "neurosymbolic") if a in summary]
+    if not agents:
+        return
+
+    metrics = [
+        ("mean_reward", "std_reward", "Mean episode reward", None),
+        ("mean_speed", "std_speed", "Mean speed (m/s)", None),
+        ("crash_rate", None, "Crash rate", "%"),
+    ]
+    x = np.arange(len(agents))
+    width = 0.55
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
+
+    for ax, (metric, std_key, title, fmt) in zip(axes, metrics):
+        vals = [summary[a][metric] for a in agents]
+        errs = [summary[a][std_key] for a in agents] if std_key else None
+        cols = [COLORS[a] for a in agents]
+        bars = ax.bar(
+            x,
+            vals,
+            width,
+            yerr=errs,
+            color=cols,
+            capsize=4,
+            edgecolor="white",
+            linewidth=0.8,
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(
+            [LABELS[a] for a in agents], fontsize=8, rotation=15, ha="right"
+        )
+        ax.set_title(title, fontsize=10)
+        ax.grid(True, axis="y", alpha=0.3)
+        if fmt == "%":
+            ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+        # annotate bar tops
+        for bar, val in zip(bars, vals):
+            label = f"{val:.1%}" if fmt == "%" else f"{val:.2f}"
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + (max(vals) * 0.01),
+                label,
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    fig.suptitle(
+        "Agent Comparison: Reward / Speed / Safety", fontsize=13, fontweight="bold"
+    )
+    fig.tight_layout()
+    path = os.path.join(FIGURES_DIR, "fig2_bar_comparison.png")
+    fig.savefig(path, dpi=150)
+    print(f"Saved {path}")
+    plt.close(fig)
+
+
+# ── Fig 3: shield override rate during training ───────────────────────────────
+
+
+def plot_shield_override() -> None:
+    data = load_json("results/neurosymbolic_train_curve.json")
+    if data is None:
+        return
+
+    curve = data["curve"]
+    # override_rate not tracked in training curve by default; skip if absent
+    if "override_rate" not in curve[0] if curve else True:
+        print("[INFO] No override_rate in training curve — skipping Fig 3")
+        return
+
+    xs = [p["timestep"] for p in curve]
+    rates = [p["override_rate"] for p in curve]
+
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(xs, rates, color=COLORS["neurosymbolic"], linewidth=2)
+    ax.fill_between(xs, 0, rates, color=COLORS["neurosymbolic"], alpha=0.15)
+    ax.set_xlabel("Training timesteps")
+    ax.set_ylabel("Shield override rate")
+    ax.set_title(
+        "Shield Override Rate vs Training Progress\n"
+        "(decreasing → neural policy learns to propose safe actions)"
+    )
+    ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x / 1000:.0f}k"))
+    ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    path = os.path.join(FIGURES_DIR, "fig3_shield_override.png")
+    fig.savefig(path, dpi=150)
+    print(f"Saved {path}")
+    plt.close(fig)
+
+
+# ── episode-level distribution ────────────────────────────────────────────────
+
+
+def plot_reward_distribution() -> None:
+    comparison = load_json("results/comparison.json")
+    if comparison is None:
+        return
+
+    agents = [a for a in ("neural", "symbolic", "neurosymbolic") if a in comparison]
+    fig, ax = plt.subplots(figsize=(8, 4))
+
+    for agent in agents:
+        rewards = [ep["reward"] for ep in comparison[agent]]
+        ax.hist(
+            rewards,
+            bins=15,
+            alpha=0.55,
+            color=COLORS[agent],
+            label=LABELS[agent],
+            edgecolor="white",
+        )
+
+    ax.set_xlabel("Episode reward")
+    ax.set_ylabel("Count")
+    ax.set_title("Reward Distribution per Episode")
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3)
+    fig.tight_layout()
+    path = os.path.join(FIGURES_DIR, "fig4_reward_distribution.png")
+    fig.savefig(path, dpi=150)
+    print(f"Saved {path}")
+    plt.close(fig)
+
+
+# ── entry point ───────────────────────────────────────────────────────────────
+
+
+def main() -> None:
+    os.makedirs(FIGURES_DIR, exist_ok=True)
+    plot_training_curves()
+    plot_bar_comparison()
+    plot_shield_override()
+    plot_reward_distribution()
+    print(f"\nAll figures saved to {FIGURES_DIR}/")
+
+
+if __name__ == "__main__":
+    main()

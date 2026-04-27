@@ -1,0 +1,26 @@
+{
+  "neural": {
+    "mean_reward": 24.77308149287908,
+    "std_reward": 17.005136817797304,
+    "mean_speed": 27.36324390644204,
+    "std_speed": 1.2783602160341976,
+    "crash_rate": 0.85,
+    "n_episodes": 20
+  },
+  "symbolic": {
+    "mean_reward": 37.896761671320775,
+    "std_reward": 15.205090596035578,
+    "mean_speed": 22.92765342622191,
+    "std_speed": 1.7873038797892857,
+    "crash_rate": 0.3,
+    "n_episodes": 20
+  },
+  "neurosymbolic": {
+    "mean_reward": 26.249273653573937,
+    "std_reward": 18.412873880117843,
+    "mean_speed": 23.907276305561627,
+    "std_speed": 2.5159390131043358,
+    "crash_rate": 0.55,
+    "n_episodes": 20
+  }
+}

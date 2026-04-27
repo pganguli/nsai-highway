@@ -1,0 +1,368 @@
+{
+  "neural": [
+    {
+      "reward": 11.743667804820383,
+      "mean_speed": 28.507365361550924,
+      "crashed": 1,
+      "steps": 13
+    },
+    {
+      "reward": 13.922857239762191,
+      "mean_speed": 29.59796332985096,
+      "crashed": 1,
+      "steps": 15
+    },
+    {
+      "reward": 4.790608794903074,
+      "mean_speed": 26.033970758751934,
+      "crashed": 1,
+      "steps": 6
+    },
+    {
+      "reward": 31.705464825054758,
+      "mean_speed": 25.261311727562372,
+      "crashed": 1,
+      "steps": 37
+    },
+    {
+      "reward": 10.928637096656443,
+      "mean_speed": 27.941245582511375,
+      "crashed": 1,
+      "steps": 12
+    },
+    {
+      "reward": 47.538711898194755,
+      "mean_speed": 26.52676792991608,
+      "crashed": 1,
+      "steps": 55
+    },
+    {
+      "reward": 6.744907548983628,
+      "mean_speed": 27.453448809052468,
+      "crashed": 1,
+      "steps": 8
+    },
+    {
+      "reward": 30.236331738341562,
+      "mean_speed": 25.572724719130747,
+      "crashed": 1,
+      "steps": 35
+    },
+    {
+      "reward": 9.657642416881888,
+      "mean_speed": 28.018178672796633,
+      "crashed": 1,
+      "steps": 11
+    },
+    {
+      "reward": 54.50348479619711,
+      "mean_speed": 26.85050916718193,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 37.65047690516071,
+      "mean_speed": 27.644359224557103,
+      "crashed": 1,
+      "steps": 42
+    },
+    {
+      "reward": 52.39517389151337,
+      "mean_speed": 25.433839924670714,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 33.44040546235237,
+      "mean_speed": 27.118756404599857,
+      "crashed": 1,
+      "steps": 37
+    },
+    {
+      "reward": 13.616867636118354,
+      "mean_speed": 28.13378954561244,
+      "crashed": 1,
+      "steps": 15
+    },
+    {
+      "reward": 8.94781051040609,
+      "mean_speed": 28.55957496794418,
+      "crashed": 1,
+      "steps": 10
+    },
+    {
+      "reward": 10.481565033043005,
+      "mean_speed": 27.044609854116796,
+      "crashed": 1,
+      "steps": 12
+    },
+    {
+      "reward": 37.96088793758929,
+      "mean_speed": 27.97486693321878,
+      "crashed": 1,
+      "steps": 41
+    },
+    {
+      "reward": 7.700530941024194,
+      "mean_speed": 28.34363188595499,
+      "crashed": 1,
+      "steps": 9
+    },
+    {
+      "reward": 18.687483598688075,
+      "mean_speed": 29.59847249738728,
+      "crashed": 1,
+      "steps": 20
+    },
+    {
+      "reward": 52.80811378189045,
+      "mean_speed": 25.64949083247308,
+      "crashed": 0,
+      "steps": 60
+    }
+  ],
+  "symbolic": [
+    {
+      "reward": 50.29253848656362,
+      "mean_speed": 23.933771079311875,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 11.181536960598534,
+      "mean_speed": 24.889482654868612,
+      "crashed": 1,
+      "steps": 14
+    },
+    {
+      "reward": 44.55930408944193,
+      "mean_speed": 21.51717583420424,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 43.53735186138663,
+      "mean_speed": 21.43384250087091,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 47.07134345566125,
+      "mean_speed": 21.919589659788283,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 48.00252054040367,
+      "mean_speed": 22.600509167537574,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 46.13475037694664,
+      "mean_speed": 22.169601812225608,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 43.73855181265832,
+      "mean_speed": 21.60050916753757,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 46.559555290373396,
+      "mean_speed": 21.850509165767697,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 48.35837571212431,
+      "mean_speed": 22.849922311015764,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 49.05679856984906,
+      "mean_speed": 23.48292452789264,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 32.626663923489424,
+      "mean_speed": 22.110556140611912,
+      "crashed": 1,
+      "steps": 42
+    },
+    {
+      "reward": 6.737327477589273,
+      "mean_speed": 25.114391237570437,
+      "crashed": 1,
+      "steps": 9
+    },
+    {
+      "reward": 42.82748131532401,
+      "mean_speed": 21.767175822077512,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 9.688649233588333,
+      "mean_speed": 27.58500531694593,
+      "crashed": 1,
+      "steps": 11
+    },
+    {
+      "reward": 46.09262868890787,
+      "mean_speed": 21.933840425519065,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 48.44455651670078,
+      "mean_speed": 22.931408935143107,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 5.928637780957965,
+      "mean_speed": 26.6408220847953,
+      "crashed": 1,
+      "steps": 7
+    },
+    {
+      "reward": 43.692889105859955,
+      "mean_speed": 21.183842500870906,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 43.403772227990466,
+      "mean_speed": 21.038188179883257,
+      "crashed": 1,
+      "steps": 60
+    }
+  ],
+  "neurosymbolic": [
+    {
+      "reward": 35.152068841208,
+      "mean_speed": 21.434406426094547,
+      "crashed": 1,
+      "steps": 49
+    },
+    {
+      "reward": 46.47277825446979,
+      "mean_speed": 22.914318813674008,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 10.355316467216221,
+      "mean_speed": 27.472544164018114,
+      "crashed": 1,
+      "steps": 12
+    },
+    {
+      "reward": 43.98177333813199,
+      "mean_speed": 23.18382785540335,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 43.760814668060135,
+      "mean_speed": 20.600509167537574,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 29.79399211138736,
+      "mean_speed": 22.351187956563226,
+      "crashed": 1,
+      "steps": 44
+    },
+    {
+      "reward": 43.9108146680568,
+      "mean_speed": 21.93384250086884,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 4.856103774971841,
+      "mean_speed": 28.16314859357401,
+      "crashed": 1,
+      "steps": 6
+    },
+    {
+      "reward": 2.3610085984373272,
+      "mean_speed": 21.075102605944195,
+      "crashed": 1,
+      "steps": 4
+    },
+    {
+      "reward": 6.8286372135128275,
+      "mean_speed": 26.919969414456702,
+      "crashed": 1,
+      "steps": 8
+    },
+    {
+      "reward": 17.955315902503127,
+      "mean_speed": 28.062062282312187,
+      "crashed": 1,
+      "steps": 21
+    },
+    {
+      "reward": 39.577461903515726,
+      "mean_speed": 21.267163689697327,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 46.82681592975369,
+      "mean_speed": 23.016759956096053,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 39.3441285697126,
+      "mean_speed": 21.18383035607038,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 48.756791673429134,
+      "mean_speed": 23.816744795893204,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 3.495327199384492,
+      "mean_speed": 26.243327015891566,
+      "crashed": 1,
+      "steps": 5
+    },
+    {
+      "reward": 46.82748133472679,
+      "mean_speed": 22.517175834204238,
+      "crashed": 0,
+      "steps": 60
+    },
+    {
+      "reward": 9.49296468433647,
+      "mean_speed": 26.98530867742228,
+      "crashed": 1,
+      "steps": 11
+    },
+    {
+      "reward": 1.6294396281688484,
+      "mean_speed": 23.12727930508569,
+      "crashed": 1,
+      "steps": 3
+    },
+    {
+      "reward": 3.6064383104956033,
+      "mean_speed": 25.877016700425038,
+      "crashed": 1,
+      "steps": 5
+    }
+  ]
+}

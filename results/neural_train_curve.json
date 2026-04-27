@@ -1,0 +1,376 @@
+{
+  "curve": [
+    {
+      "timestep": 3000,
+      "mean_reward": 18.315742308353414,
+      "std_reward": 8.953340782245728,
+      "crash_rate": 1.0,
+      "mean_speed": 24.460524092935742
+    },
+    {
+      "timestep": 6000,
+      "mean_reward": 10.55020290091824,
+      "std_reward": 7.885444101749118,
+      "crash_rate": 1.0,
+      "mean_speed": 28.814459347546926
+    },
+    {
+      "timestep": 9000,
+      "mean_reward": 7.5371284401559935,
+      "std_reward": 4.568437021327411,
+      "crash_rate": 1.0,
+      "mean_speed": 27.516339945452557
+    },
+    {
+      "timestep": 12000,
+      "mean_reward": 8.770541175997334,
+      "std_reward": 5.707612652673024,
+      "crash_rate": 1.0,
+      "mean_speed": 27.023761656564226
+    },
+    {
+      "timestep": 15000,
+      "mean_reward": 15.317947778807167,
+      "std_reward": 4.965141495518307,
+      "crash_rate": 1.0,
+      "mean_speed": 28.161001324774713
+    },
+    {
+      "timestep": 18000,
+      "mean_reward": 31.058964633813172,
+      "std_reward": 17.216583630346005,
+      "crash_rate": 0.6,
+      "mean_speed": 22.858823548309108
+    },
+    {
+      "timestep": 21000,
+      "mean_reward": 20.53522668086405,
+      "std_reward": 13.402571747520748,
+      "crash_rate": 0.8,
+      "mean_speed": 25.112725130732336
+    },
+    {
+      "timestep": 24000,
+      "mean_reward": 8.403129463097486,
+      "std_reward": 3.2287403599453635,
+      "crash_rate": 1.0,
+      "mean_speed": 26.4453114901488
+    },
+    {
+      "timestep": 27000,
+      "mean_reward": 46.33149206915998,
+      "std_reward": 1.1090744150790623,
+      "crash_rate": 0.0,
+      "mean_speed": 21.463740657730135
+    },
+    {
+      "timestep": 30000,
+      "mean_reward": 33.06836700880065,
+      "std_reward": 13.908785770390619,
+      "crash_rate": 0.4,
+      "mean_speed": 22.916859056656342
+    },
+    {
+      "timestep": 3000,
+      "mean_reward": 6.4226108844151355,
+      "std_reward": 2.661683850476709,
+      "crash_rate": 1.0,
+      "mean_speed": 27.743747586405885
+    },
+    {
+      "timestep": 6000,
+      "mean_reward": 12.875325555935252,
+      "std_reward": 4.051149240698809,
+      "crash_rate": 1.0,
+      "mean_speed": 28.985044556298284
+    },
+    {
+      "timestep": 9000,
+      "mean_reward": 16.93322662335383,
+      "std_reward": 16.520795633705497,
+      "crash_rate": 0.8,
+      "mean_speed": 27.250310520642152
+    },
+    {
+      "timestep": 12000,
+      "mean_reward": 24.538828582757763,
+      "std_reward": 18.220403904695786,
+      "crash_rate": 0.6,
+      "mean_speed": 23.594484548623434
+    },
+    {
+      "timestep": 15000,
+      "mean_reward": 17.87794633860451,
+      "std_reward": 13.369105542001401,
+      "crash_rate": 0.8,
+      "mean_speed": 27.476302003743974
+    },
+    {
+      "timestep": 18000,
+      "mean_reward": 16.545274491156697,
+      "std_reward": 17.493480534476586,
+      "crash_rate": 0.8,
+      "mean_speed": 26.788037763079444
+    },
+    {
+      "timestep": 21000,
+      "mean_reward": 22.147886817547676,
+      "std_reward": 19.346702973083616,
+      "crash_rate": 0.6,
+      "mean_speed": 25.25666565656423
+    },
+    {
+      "timestep": 24000,
+      "mean_reward": 16.158983950039634,
+      "std_reward": 15.732832825324788,
+      "crash_rate": 0.8,
+      "mean_speed": 25.09364976701946
+    },
+    {
+      "timestep": 27000,
+      "mean_reward": 7.73472009231773,
+      "std_reward": 4.902576174098494,
+      "crash_rate": 1.0,
+      "mean_speed": 27.716702624305128
+    },
+    {
+      "timestep": 30000,
+      "mean_reward": 29.987535440605093,
+      "std_reward": 20.399444023209586,
+      "crash_rate": 0.4,
+      "mean_speed": 23.11423647787587
+    },
+    {
+      "timestep": 3000,
+      "mean_reward": 4.7448743366675945,
+      "std_reward": 1.8299091763136215,
+      "crash_rate": 1.0,
+      "mean_speed": 26.711033296012793
+    },
+    {
+      "timestep": 6000,
+      "mean_reward": 7.992971438283936,
+      "std_reward": 1.881939602132415,
+      "crash_rate": 1.0,
+      "mean_speed": 26.873587017666317
+    },
+    {
+      "timestep": 9000,
+      "mean_reward": 9.120510074366715,
+      "std_reward": 3.634144704460277,
+      "crash_rate": 1.0,
+      "mean_speed": 28.774672069267204
+    },
+    {
+      "timestep": 12000,
+      "mean_reward": 23.320909146785798,
+      "std_reward": 19.577335449633516,
+      "crash_rate": 0.6,
+      "mean_speed": 24.917954566740267
+    },
+    {
+      "timestep": 15000,
+      "mean_reward": 14.954180302076045,
+      "std_reward": 17.160191683342422,
+      "crash_rate": 0.8,
+      "mean_speed": 25.708851944327854
+    },
+    {
+      "timestep": 18000,
+      "mean_reward": 18.428987883892614,
+      "std_reward": 16.114158676058505,
+      "crash_rate": 0.8,
+      "mean_speed": 24.415693394503336
+    },
+    {
+      "timestep": 21000,
+      "mean_reward": 29.89641955200156,
+      "std_reward": 19.70727299127251,
+      "crash_rate": 0.4,
+      "mean_speed": 24.519078879662334
+    },
+    {
+      "timestep": 24000,
+      "mean_reward": 22.919958510024436,
+      "std_reward": 16.944767650583014,
+      "crash_rate": 0.6,
+      "mean_speed": 21.22243272289946
+    },
+    {
+      "timestep": 27000,
+      "mean_reward": 18.39729266158518,
+      "std_reward": 13.436985832925584,
+      "crash_rate": 1.0,
+      "mean_speed": 24.07380231434627
+    },
+    {
+      "timestep": 30000,
+      "mean_reward": 24.67679401770714,
+      "std_reward": 11.57289388109242,
+      "crash_rate": 0.8,
+      "mean_speed": 25.57214470024442
+    },
+    {
+      "timestep": 33000,
+      "mean_reward": 10.389481968510198,
+      "std_reward": 7.586044510576596,
+      "crash_rate": 1.0,
+      "mean_speed": 28.367774329082742
+    },
+    {
+      "timestep": 36000,
+      "mean_reward": 14.562572236234578,
+      "std_reward": 15.827340414501354,
+      "crash_rate": 0.8,
+      "mean_speed": 25.795441090709705
+    },
+    {
+      "timestep": 39000,
+      "mean_reward": 17.022079637327867,
+      "std_reward": 13.039658431293669,
+      "crash_rate": 1.0,
+      "mean_speed": 28.81727224587878
+    },
+    {
+      "timestep": 42000,
+      "mean_reward": 19.08564649944544,
+      "std_reward": 11.76395228392481,
+      "crash_rate": 1.0,
+      "mean_speed": 26.978704287153242
+    },
+    {
+      "timestep": 45000,
+      "mean_reward": 27.843475602875742,
+      "std_reward": 18.09203670178031,
+      "crash_rate": 0.6,
+      "mean_speed": 24.432255653134963
+    },
+    {
+      "timestep": 48000,
+      "mean_reward": 26.187971948302597,
+      "std_reward": 20.90009411293401,
+      "crash_rate": 0.6,
+      "mean_speed": 26.215544161496734
+    },
+    {
+      "timestep": 51000,
+      "mean_reward": 16.128222952579883,
+      "std_reward": 11.31516176317123,
+      "crash_rate": 1.0,
+      "mean_speed": 26.986350078994526
+    },
+    {
+      "timestep": 54000,
+      "mean_reward": 20.444503105244586,
+      "std_reward": 15.062989501537562,
+      "crash_rate": 0.8,
+      "mean_speed": 26.073113036101994
+    },
+    {
+      "timestep": 57000,
+      "mean_reward": 14.239157525468901,
+      "std_reward": 5.186535196698144,
+      "crash_rate": 1.0,
+      "mean_speed": 28.00783747438018
+    },
+    {
+      "timestep": 60000,
+      "mean_reward": 26.262189251070815,
+      "std_reward": 21.175439533236332,
+      "crash_rate": 0.6,
+      "mean_speed": 26.54117690273938
+    },
+    {
+      "timestep": 63000,
+      "mean_reward": 23.706591554034123,
+      "std_reward": 17.04035427424684,
+      "crash_rate": 0.8,
+      "mean_speed": 27.954636069434677
+    },
+    {
+      "timestep": 66000,
+      "mean_reward": 27.740898055985713,
+      "std_reward": 13.907034094629147,
+      "crash_rate": 1.0,
+      "mean_speed": 27.896724055767738
+    },
+    {
+      "timestep": 69000,
+      "mean_reward": 25.600681973381704,
+      "std_reward": 21.131331339767875,
+      "crash_rate": 0.8,
+      "mean_speed": 28.084847355059527
+    },
+    {
+      "timestep": 72000,
+      "mean_reward": 32.649247527451884,
+      "std_reward": 13.275081855451248,
+      "crash_rate": 0.8,
+      "mean_speed": 26.593709712414324
+    },
+    {
+      "timestep": 75000,
+      "mean_reward": 51.71677922563424,
+      "std_reward": 3.3905994795467396,
+      "crash_rate": 0.0,
+      "mean_speed": 24.96393891788321
+    },
+    {
+      "timestep": 78000,
+      "mean_reward": 14.387478017036518,
+      "std_reward": 9.244665105054452,
+      "crash_rate": 1.0,
+      "mean_speed": 27.065647715049856
+    },
+    {
+      "timestep": 81000,
+      "mean_reward": 43.256654391316154,
+      "std_reward": 15.471616664964774,
+      "crash_rate": 0.4,
+      "mean_speed": 27.751124790751128
+    },
+    {
+      "timestep": 84000,
+      "mean_reward": 35.81235788897534,
+      "std_reward": 12.578051222631407,
+      "crash_rate": 0.8,
+      "mean_speed": 28.731009790896803
+    },
+    {
+      "timestep": 87000,
+      "mean_reward": 40.8372030236098,
+      "std_reward": 14.817842825249734,
+      "crash_rate": 0.4,
+      "mean_speed": 26.974278319473353
+    },
+    {
+      "timestep": 90000,
+      "mean_reward": 29.4986656409347,
+      "std_reward": 11.91128799541673,
+      "crash_rate": 0.8,
+      "mean_speed": 27.621947632728713
+    },
+    {
+      "timestep": 93000,
+      "mean_reward": 26.451511766730924,
+      "std_reward": 18.576907722858643,
+      "crash_rate": 0.8,
+      "mean_speed": 28.965514909917363
+    },
+    {
+      "timestep": 96000,
+      "mean_reward": 22.57171941664846,
+      "std_reward": 18.243158869867706,
+      "crash_rate": 0.8,
+      "mean_speed": 28.82602745736109
+    },
+    {
+      "timestep": 99000,
+      "mean_reward": 31.625570968054813,
+      "std_reward": 19.124545610354076,
+      "crash_rate": 0.8,
+      "mean_speed": 28.69147956085727
+    }
+  ],
+  "training_seconds": 13762.787962436676
+}
