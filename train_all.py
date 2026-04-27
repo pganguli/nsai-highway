@@ -47,8 +47,6 @@ sys.path.insert(0, os.path.dirname(__file__))
 import highway_env  # noqa: F401
 
 from pearl.pearl_agent import PearlAgent
-from pearl.policy_learners.sequential_decision_making.deep_q_learning import DeepQLearning
-from pearl.replay_buffers.basic_replay_buffer import BasicReplayBuffer
 from pearl.action_representation_modules.one_hot_action_representation_module import (
     OneHotActionTensorRepresentationModule,
 )
@@ -65,6 +63,9 @@ from config import (
     EVAL_FREQ,
     DQN_KWARGS,
 )
+from deep_set_network import DeepSetQNetwork
+from double_dqn_per import DoubleDQNWithPER
+from per_replay_buffer import PrioritizedReplayBuffer
 from pearl_environment import make_pearl_env, make_pearl_eval_env, N_ACTIONS
 from pearl_safety_module import LTLShieldSafetyModule
 from safety_shield import LTLSafetyShield
@@ -73,7 +74,7 @@ STATE_DIM = N_OBS_VEHICLES * N_FEATURES  # 50
 
 
 def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
-    """Construct a Pearl DQN agent matching the original DQN hyperparameters."""
+    """Construct a Pearl Double-DQN+PER+DeepSet agent."""
     exploration_module = EGreedyExploration(
         epsilon=0.05,
         start_epsilon=1.0,
@@ -81,16 +82,24 @@ def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
         warmup_steps=int(total_timesteps * 0.1),
     )
 
-    policy_learner = DeepQLearning(
+    network = DeepSetQNetwork(
+        n_vehicles=N_OBS_VEHICLES,
+        n_features=N_FEATURES,
+        action_dim=N_ACTIONS,          # one-hot action representation
+        phi_hidden=[64, 64],           # per-vehicle encoder
+        rho_hidden=[256, 256],         # Q-value head
+    )
+
+    policy_learner = DoubleDQNWithPER(
         state_dim=STATE_DIM,
         action_space=DiscreteActionSpace([torch.tensor([i]) for i in range(N_ACTIONS)]),
-        hidden_dims=DQN_KWARGS["policy_kwargs"]["net_arch"],
+        network_instance=network,
         learning_rate=DQN_KWARGS["learning_rate"],
         discount_factor=DQN_KWARGS["gamma"],
         training_rounds=DQN_KWARGS["gradient_steps"],
         batch_size=DQN_KWARGS["batch_size"],
         target_update_freq=DQN_KWARGS["target_update_interval"],
-        soft_update_tau=1.0,  # hard target update (matches SB3 default)
+        soft_update_tau=1.0,           # hard target update
         exploration_module=exploration_module,
         action_representation_module=OneHotActionTensorRepresentationModule(
             max_number_actions=N_ACTIONS,
@@ -102,7 +111,12 @@ def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
 
     return PearlAgent(
         policy_learner=policy_learner,
-        replay_buffer=BasicReplayBuffer(DQN_KWARGS["buffer_size"]),
+        replay_buffer=PrioritizedReplayBuffer(
+            DQN_KWARGS["buffer_size"],
+            alpha=0.6,
+            beta=0.4,
+            beta_annealing_steps=total_timesteps,
+        ),
         safety_module=safety_module,
     ), shield
 
