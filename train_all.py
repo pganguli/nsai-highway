@@ -1,5 +1,5 @@
 """
-Train all learnable agents and save results.
+Train all learnable agents using Pearl DQN and save results.
 
 Usage
 -----
@@ -11,12 +11,24 @@ Usage
 
 Outputs (written to ./models/ and ./results/)
 -------
-  models/neural/model.zip                        final model
-  models/neural/checkpoints/rl_model_*_steps.zip periodic checkpoints
-  models/neurosymbolic/model.zip
-  models/neurosymbolic/checkpoints/
-  results/neural_train_curve.json                written incrementally
+  models/neural/model.pth                          final agent state dict
+  models/neural/best_model.pth                     best checkpoint (by eval reward)
+  models/neural/checkpoints/pearl_model_N_steps.pth
+  results/neural_train_curve.json                  written incrementally
   results/neurosymbolic_train_curve.json
+
+Architecture change from SB3
+-----------------------------
+The shielded agent previously used a post-hoc action override (SB3
+ShieldedEnv wrapper) which introduced an off-policy error: the replay
+buffer stored (obs, proposed_action, reward, next_obs) but the *executed*
+action may have differed.
+
+The Pearl implementation uses action masking at the source:
+  1. ShieldedHighwayPearlEnv returns only safe actions as available_action_space.
+  2. LTLShieldSafetyModule filters actions before each act() call.
+  3. The Bellman backup uses the stored safe next-action set, so targets are
+     computed over only the feasible actions in the next state.
 """
 
 import argparse
@@ -27,114 +39,139 @@ import sys
 import time
 
 import numpy as np
-import gymnasium as gym
+import torch
+from tqdm import tqdm
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 import highway_env  # noqa: F401
-from stable_baselines3 import DQN
-from stable_baselines3.common.callbacks import BaseCallback, CallbackList, CheckpointCallback
+
+from pearl.pearl_agent import PearlAgent
+from pearl.policy_learners.sequential_decision_making.deep_q_learning import DeepQLearning
+from pearl.replay_buffers.basic_replay_buffer import BasicReplayBuffer
+from pearl.action_representation_modules.one_hot_action_representation_module import (
+    OneHotActionTensorRepresentationModule,
+)
+from pearl.policy_learners.exploration_modules.common.epsilon_greedy_exploration import (
+    EGreedyExploration,
+)
+from pearl.utils.instantiations.spaces.discrete_action import DiscreteActionSpace
+
 from config import (
     BASE_ENV_CONFIG,
-    DQN_KWARGS,
+    N_OBS_VEHICLES,
+    N_FEATURES,
     TOTAL_TIMESTEPS,
     EVAL_FREQ,
+    DQN_KWARGS,
 )
-from environments import make_env, make_eval_env
+from pearl_environment import make_pearl_env, make_pearl_eval_env, N_ACTIONS
+from pearl_safety_module import LTLShieldSafetyModule
+from safety_shield import LTLSafetyShield
+
+STATE_DIM = N_OBS_VEHICLES * N_FEATURES  # 50
+
+
+def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
+    """Construct a Pearl DQN agent matching the original DQN hyperparameters."""
+    exploration_module = EGreedyExploration(
+        epsilon=0.05,
+        start_epsilon=1.0,
+        end_epsilon=0.05,
+        warmup_steps=int(total_timesteps * 0.1),
+    )
+
+    policy_learner = DeepQLearning(
+        state_dim=STATE_DIM,
+        action_space=DiscreteActionSpace([torch.tensor([i]) for i in range(N_ACTIONS)]),
+        hidden_dims=DQN_KWARGS["policy_kwargs"]["net_arch"],
+        learning_rate=DQN_KWARGS["learning_rate"],
+        discount_factor=DQN_KWARGS["gamma"],
+        training_rounds=DQN_KWARGS["gradient_steps"],
+        batch_size=DQN_KWARGS["batch_size"],
+        target_update_freq=DQN_KWARGS["target_update_interval"],
+        soft_update_tau=1.0,  # hard target update (matches SB3 default)
+        exploration_module=exploration_module,
+        action_representation_module=OneHotActionTensorRepresentationModule(
+            max_number_actions=N_ACTIONS,
+        ),
+    )
+
+    shield = LTLSafetyShield() if shielded else None
+    safety_module = LTLShieldSafetyModule(shield=shield) if shielded else None
+
+    return PearlAgent(
+        policy_learner=policy_learner,
+        replay_buffer=BasicReplayBuffer(DQN_KWARGS["buffer_size"]),
+        safety_module=safety_module,
+    ), shield
 
 
 def _latest_checkpoint(ckpt_dir: str) -> str | None:
-    """Return the path of the highest-step checkpoint in ckpt_dir, or None."""
-    pattern = os.path.join(ckpt_dir, "rl_model_*_steps.zip")
-    files = glob.glob(pattern)
+    """Return path of the highest-step Pearl checkpoint in ckpt_dir, or None."""
+    files = glob.glob(os.path.join(ckpt_dir, "pearl_model_*_steps.pth"))
     if not files:
         return None
-    # filenames: rl_model_<step>_steps.zip
     def _step(p: str) -> int:
-        name = os.path.basename(p)          # rl_model_12000_steps.zip
-        return int(name.split("_")[2])
+        return int(os.path.basename(p).split("_")[2])
     return max(files, key=_step)
 
 
-# ── callback to record training progress ─────────────────────────────────────
+# ── evaluation helper ─────────────────────────────────────────────────────────
 
 
-class TrainingCurveCallback(BaseCallback):
+def _eval_agent(
+    agent: PearlAgent,
+    eval_env,
+    n_episodes: int,
+) -> tuple[list[float], float, float]:
     """
-    Records mean episode reward (and collision rate) at regular intervals
-    by running a short evaluation rollout against a separate eval env.
-    Writes the curve to disk after every eval so progress survives interruption.
+    Run n_episodes greedy evaluation episodes.
+
+    Uses the policy_learner and safety_module directly (no replay buffer push)
+    so training state is not perturbed.
+
+    Returns (rewards, crash_rate, mean_speed).
     """
+    pl = agent.policy_learner
+    sm = agent.safety_module
+    device = agent.device
 
-    def __init__(
-        self,
-        eval_env: gym.Env,
-        eval_freq: int,
-        curve_path: str,
-        best_model_path: str,
-        n_eval_ep: int = 5,
-    ):
-        super().__init__()
-        self.eval_env        = eval_env
-        self.eval_freq       = eval_freq
-        self.curve_path      = curve_path
-        self.best_model_path = best_model_path
-        self.n_eval_ep       = n_eval_ep
-        self.curve: list[dict] = []
-        self._best_reward    = float("-inf")
-        # load any curve written by a previous run so resume appends cleanly
-        if os.path.exists(curve_path):
-            with open(curve_path) as f:
-                saved = json.load(f).get("curve", [])
-                self.curve = saved
-                if saved:
-                    self._best_reward = max(p["mean_reward"] for p in saved)
+    rewards: list[float] = []
+    crashes: list[float] = []
+    speeds: list[float] = []
 
-    def _on_step(self) -> bool:
-        if self.num_timesteps % self.eval_freq == 0:
-            rewards, crash_rates, speeds = [], [], []
-            for _ in range(self.n_eval_ep):
-                ep_reward, ep_crashed, ep_speed = 0.0, False, []
-                obs, _ = self.eval_env.reset()
-                done = truncated = False
-                while not (done or truncated):
-                    action, _ = self.model.predict(obs, deterministic=True)
-                    obs, r, done, truncated, info = self.eval_env.step(action)
-                    ep_reward += r  # type: ignore
-                    ep_crashed = ep_crashed or info.get("crashed", False)
-                    ep_speed.append(info.get("speed", 0.0))
-                rewards.append(ep_reward)
-                crash_rates.append(float(ep_crashed))
-                speeds.append(float(np.mean(ep_speed)) if ep_speed else 0.0)
+    for _ in range(n_episodes):
+        obs, action_space = eval_env.reset()
+        done = False
+        ep_reward = 0.0
+        ep_crashed = False
+        ep_speeds: list[float] = []
 
-            mean_reward = float(np.mean(rewards))
-            self.curve.append(
-                {
-                    "timestep":    self.num_timesteps,
-                    "mean_reward": mean_reward,
-                    "std_reward":  float(np.std(rewards)),
-                    "crash_rate":  float(np.mean(crash_rates)),
-                    "mean_speed":  float(np.mean(speeds)),
-                }
-            )
-            is_best = mean_reward > self._best_reward
-            if is_best:
-                self._best_reward = mean_reward
-                self.model.save(self.best_model_path)
-            print(
-                f"  [{self.num_timesteps:>7d}] "
-                f"reward={mean_reward:.3f}  "
-                f"crash={self.curve[-1]['crash_rate']:.2f}  "
-                f"speed={self.curve[-1]['mean_speed']:.1f} m/s"
-                + ("  ★ new best" if is_best else "")
-            )
-            # flush to disk so the curve survives an interruption
-            with open(self.curve_path, "w") as f:
-                json.dump({"curve": self.curve}, f, indent=2)
-        return True
+        while not done:
+            obs_t = torch.as_tensor(obs).to(device)
+            action_space.to(device)
+            safe_space = sm.filter_action(obs_t, action_space)
+            safe_space.to(device)
+            action = pl.act(subjective_state=obs_t, available_action_space=safe_space, exploit=True)
+
+            action_result = eval_env.step(action)
+            ep_reward += float(action_result.reward)
+            info = action_result.info or {}
+            ep_crashed = ep_crashed or bool(info.get("crashed", False))
+            ep_speeds.append(float(info.get("speed", 0.0)))
+            obs = action_result.observation
+            action_space = action_result.available_action_space or eval_env.action_space
+            done = action_result.done
+
+        rewards.append(ep_reward)
+        crashes.append(float(ep_crashed))
+        speeds.append(float(np.mean(ep_speeds)) if ep_speeds else 0.0)
+
+    return rewards, float(np.mean(crashes)), float(np.mean(speeds))
 
 
-# ── training helpers ──────────────────────────────────────────────────────────
+# ── core training loop ────────────────────────────────────────────────────────
 
 
 def _train(
@@ -148,67 +185,159 @@ def _train(
     ckpt_freq: int,
 ) -> None:
     os.makedirs(model_dir, exist_ok=True)
-    os.makedirs(os.path.join(model_dir, "checkpoints"), exist_ok=True)
+    ckpt_dir = os.path.join(model_dir, "checkpoints")
+    os.makedirs(ckpt_dir, exist_ok=True)
     os.makedirs("results", exist_ok=True)
 
-    env      = make_env(BASE_ENV_CONFIG, shielded=shielded)
-    eval_env = make_eval_env(shielded=shielded)
+    torch.manual_seed(seed)
+    np.random.seed(seed)
 
-    ckpt_dir           = os.path.join(model_dir, "checkpoints")
-    latest_ckpt        = _latest_checkpoint(ckpt_dir)
-    reset_num_timesteps = True
-
-    if resume and latest_ckpt:
-        print(f"  Resuming from checkpoint: {latest_ckpt}")
-        model = DQN.load(latest_ckpt, env=env)
-        reset_num_timesteps = False
-    else:
-        tb_log = f"results/tensorboard/{os.path.basename(model_dir)}/"
-        model  = DQN(env=env, **DQN_KWARGS, seed=seed, tensorboard_log=tb_log)
-
-    curve_cb = TrainingCurveCallback(
-        eval_env,
-        eval_freq=EVAL_FREQ,
-        curve_path=curve_path,
-        best_model_path=os.path.join(model_dir, "best_model"),
-        n_eval_ep=5,
+    # Build environments
+    shield = LTLSafetyShield() if shielded else None
+    env = (
+        make_pearl_env(BASE_ENV_CONFIG, shielded=True, fast=True)
+        if shielded
+        else make_pearl_env(BASE_ENV_CONFIG, shielded=False, fast=True)
     )
-    ckpt_cb = CheckpointCallback(
-        save_freq=ckpt_freq,
-        save_path=ckpt_dir,
-        name_prefix="rl_model",
-        verbose=0,
-    )
+    eval_env = make_pearl_eval_env(shielded=shielded)
 
+    # Share the same shield instance between env wrapper and safety module
+    if shielded and shield is not None:
+        env.shield = shield
+        if hasattr(env, "shield"):
+            # Replace the env's auto-created shield with our named one
+            env.shield = shield
+
+    agent, _shield = _make_agent(timesteps, shielded=shielded)
+
+    # Resume from checkpoint
+    start_step = 0
+    curve: list[dict] = []
+    best_reward = float("-inf")
+
+    if resume:
+        latest_ckpt = _latest_checkpoint(ckpt_dir)
+        if latest_ckpt:
+            print(f"  Resuming from: {latest_ckpt}")
+            ckpt = torch.load(latest_ckpt, weights_only=False)
+            agent.load_state_dict(ckpt["agent_state"])
+            start_step = ckpt["timestep"]
+            best_reward = ckpt.get("best_reward", float("-inf"))
+            print(f"  Continuing from step {start_step}")
+
+    if resume and os.path.exists(curve_path):
+        with open(curve_path) as f:
+            saved = json.load(f).get("curve", [])
+            curve = saved
+            if saved:
+                best_reward = max(best_reward, max(p["mean_reward"] for p in saved))
+
+    # Initialise env and agent state
+    obs, action_space = env.reset()
+    agent.reset(obs, action_space)
+
+    learning_starts = DQN_KWARGS["learning_starts"]
     t0 = time.time()
-    model.learn(
-        total_timesteps=timesteps,
-        callback=CallbackList([curve_cb, ckpt_cb]),
-        reset_num_timesteps=reset_num_timesteps,
-        progress_bar=True,
-    )
+
+    with tqdm(total=timesteps, initial=0, desc=label) as pbar:
+        for step_in_run in range(timesteps):
+            t = start_step + step_in_run
+
+            action = agent.act(exploit=False)
+            action_result = env.step(action)
+            agent.observe(action_result)
+
+            if step_in_run >= learning_starts:
+                agent.learn()
+
+            if action_result.done:
+                obs, action_space = env.reset()
+                agent.reset(obs, action_space)
+
+            pbar.update(1)
+
+            # Periodic checkpoint
+            if ckpt_freq > 0 and (step_in_run + 1) % ckpt_freq == 0:
+                ckpt_path = os.path.join(
+                    ckpt_dir, f"pearl_model_{t + 1}_steps.pth"
+                )
+                torch.save(
+                    {
+                        "agent_state": agent.state_dict(),
+                        "timestep": t + 1,
+                        "best_reward": best_reward,
+                    },
+                    ckpt_path,
+                )
+
+            # Periodic evaluation
+            if (step_in_run + 1) % EVAL_FREQ == 0:
+                ep_rewards, crash_r, mean_sp = _eval_agent(agent, eval_env, n_episodes=5)
+                mean_r = float(np.mean(ep_rewards))
+                std_r = float(np.std(ep_rewards))
+
+                is_best = mean_r > best_reward
+                if is_best:
+                    best_reward = mean_r
+                    torch.save(
+                        {
+                            "agent_state": agent.state_dict(),
+                            "timestep": t + 1,
+                            "best_reward": best_reward,
+                        },
+                        os.path.join(model_dir, "best_model.pth"),
+                    )
+
+                curve.append(
+                    {
+                        "timestep": t + 1,
+                        "mean_reward": mean_r,
+                        "std_reward": std_r,
+                        "crash_rate": crash_r,
+                        "mean_speed": mean_sp,
+                    }
+                )
+                print(
+                    f"\n  [{t + 1:>7d}] "
+                    f"reward={mean_r:.3f}±{std_r:.2f}  "
+                    f"crash={crash_r:.2f}  "
+                    f"speed={mean_sp:.1f} m/s"
+                    + ("  ★ new best" if is_best else "")
+                )
+                with open(curve_path, "w") as f:
+                    json.dump({"curve": curve}, f, indent=2)
+
     elapsed = time.time() - t0
 
-    model.save(os.path.join(model_dir, "model"))
+    # Save final model
+    torch.save(
+        {
+            "agent_state": agent.state_dict(),
+            "timestep": start_step + timesteps,
+            "best_reward": best_reward,
+        },
+        os.path.join(model_dir, "model.pth"),
+    )
 
-    # write final training seconds into the curve file (curve entries already flushed)
     with open(curve_path) as f:
         data = json.load(f)
     data["training_seconds"] = elapsed
-    if shielded and hasattr(env, "shield"):
-        rate = env.shield.override_rate  # type: ignore
-        data["final_shield_override_rate"] = rate
-        print(f"  Shield override rate during training: {rate:.2%}")
+    if shielded and hasattr(env, "filter_rate"):
+        data["final_shield_filter_rate"] = env.filter_rate
+        print(f"  Shield filter rate during training: {env.filter_rate:.2%}")
     with open(curve_path, "w") as f:
         json.dump(data, f, indent=2)
 
-    print(f"{label} saved → {model_dir}/model.zip  ({elapsed:.0f}s)")
+    print(f"{label} saved → {model_dir}/model.pth  ({elapsed:.0f}s)")
     env.close()
     eval_env.close()
 
 
+# ── public entry points ───────────────────────────────────────────────────────
+
+
 def train_neural(timesteps: int, seed: int, resume: bool, ckpt_freq: int) -> None:
-    print("\n=== Training PURE NEURAL (DQN) ===")
+    print("\n=== Training PURE NEURAL (Pearl DQN) ===")
     _train(
         label="Neural DQN",
         model_dir="models/neural",
@@ -222,7 +351,7 @@ def train_neural(timesteps: int, seed: int, resume: bool, ckpt_freq: int) -> Non
 
 
 def train_neurosymbolic(timesteps: int, seed: int, resume: bool, ckpt_freq: int) -> None:
-    print("\n=== Training NEUROSYMBOLIC (Shielded DQN) ===")
+    print("\n=== Training NEUROSYMBOLIC (Pearl Shielded DQN) ===")
     _train(
         label="Shielded DQN",
         model_dir="models/neurosymbolic",
@@ -235,16 +364,13 @@ def train_neurosymbolic(timesteps: int, seed: int, resume: bool, ckpt_freq: int)
     )
 
 
-# ── entry point ───────────────────────────────────────────────────────────────
-
-
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Train highway agents")
+    parser = argparse.ArgumentParser(description="Train highway agents with Pearl DQN")
     parser.add_argument("--agent", choices=["neural", "neurosymbolic", "all"], default="all")
-    parser.add_argument("--timesteps",    type=int,  default=TOTAL_TIMESTEPS)
-    parser.add_argument("--seed",         type=int,  default=42)
-    parser.add_argument("--resume",       action="store_true",
-                        help="continue from the latest checkpoint in models/*/checkpoints/")
+    parser.add_argument("--timesteps", type=int, default=TOTAL_TIMESTEPS)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--resume", action="store_true",
+                        help="continue from the latest checkpoint")
     parser.add_argument("--checkpoint-freq", type=int, default=EVAL_FREQ,
                         help="save a checkpoint every N timesteps (default: EVAL_FREQ)")
     args = parser.parse_args()

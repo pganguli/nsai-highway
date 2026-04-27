@@ -32,9 +32,9 @@ COLORS = {
     "neurosymbolic": "#3498DB",  # blue
 }
 LABELS = {
-    "neural": "Pure Neural (DQN)",
+    "neural": "Pure Neural (Pearl DQN)",
     "symbolic": "Pure Symbolic (FSM)",
-    "neurosymbolic": "NeuroSymbolic (Shielded DQN)",
+    "neurosymbolic": "NeuroSymbolic (Shielded Pearl DQN)",
 }
 
 
@@ -167,37 +167,62 @@ def plot_bar_comparison() -> None:
     plt.close(fig)
 
 
-# ── Fig 3: shield override rate during training ───────────────────────────────
+# ── Fig 3: shield filter rate during training ────────────────────────────────
 
 
 def plot_shield_override() -> None:
-    data = load_json("results/neurosymbolic_train_curve.json")
-    if data is None:
+    ns_data = load_json("results/neurosymbolic_train_curve.json")
+    neural_data = load_json("results/neural_train_curve.json")
+    if ns_data is None:
         return
 
-    curve = data["curve"]
-    # override_rate not tracked in training curve by default; skip if absent
-    if "override_rate" not in curve[0] if curve else True:
-        print("[INFO] No override_rate in training curve — skipping Fig 3")
+    curve = ns_data.get("curve", [])
+    if not curve:
+        print("[INFO] Neurosymbolic training curve is empty — skipping Fig 3")
         return
 
     xs = [p["timestep"] for p in curve]
-    rates = [p["override_rate"] for p in curve]
+    ns_crashes = [p["crash_rate"] for p in curve]
+    neural_crashes = (
+        [p["crash_rate"] for p in neural_data.get("curve", [])]
+        if neural_data
+        else []
+    )
+    # Final shield filter rate stored at the top level of the JSON
+    filter_rate = ns_data.get("final_shield_filter_rate")
 
-    fig, ax = plt.subplots(figsize=(7, 4))
-    ax.plot(xs, rates, color=COLORS["neurosymbolic"], linewidth=2)
-    ax.fill_between(xs, 0, rates, color=COLORS["neurosymbolic"], alpha=0.15)
+    fig, ax = plt.subplots(figsize=(8, 4.5))
+
+    # Crash rate curves
+    ax.plot(xs, ns_crashes, color=COLORS["neurosymbolic"], linewidth=2,
+            label=LABELS["neurosymbolic"])
+    if neural_crashes and len(neural_crashes) == len(xs):
+        ax.plot(xs, neural_crashes, color=COLORS["neural"], linewidth=2,
+                linestyle="--", label=LABELS["neural"])
+
+    # Annotate final shield filter rate as a horizontal reference line
+    if filter_rate is not None:
+        ax.axhline(
+            filter_rate,
+            color=COLORS["neurosymbolic"],
+            linewidth=1,
+            linestyle=":",
+            alpha=0.7,
+            label=f"Shield filter rate (final): {filter_rate:.1%}",
+        )
+
     ax.set_xlabel("Training timesteps")
-    ax.set_ylabel("Shield override rate")
+    ax.set_ylabel("Rate")
     ax.set_title(
-        "Shield Override Rate vs Training Progress\n"
-        "(decreasing → neural policy learns to propose safe actions)"
+        "Crash Rate vs Training Progress\n"
+        "(shield filter rate shown as dotted reference line)"
     )
     ax.xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f"{x / 1000:.0f}k"))
     ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+    ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    path = os.path.join(FIGURES_DIR, "fig3_shield_override.png")
+    path = os.path.join(FIGURES_DIR, "fig3_shield_filter.png")
     fig.savefig(path, dpi=150)
     print(f"Saved {path}")
     plt.close(fig)

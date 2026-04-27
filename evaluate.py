@@ -19,30 +19,78 @@ import os
 import sys
 
 import numpy as np
+import torch
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 import highway_env  # noqa: F401
-from stable_baselines3 import DQN
 
 from config import N_EVAL_EPISODES
-from environments import make_eval_env, ShieldedEnv
+from pearl_environment import make_pearl_eval_env
+from pearl_safety_module import LTLShieldSafetyModule
 from symbolic_agent import SymbolicAgent
+from environments import make_eval_env  # plain gym env for symbolic agent
+from train_all import _make_agent
 
 
-# ── episode runner ────────────────────────────────────────────────────────────
+def load_pearl_agent(model_path: str, shielded: bool = False) -> object:
+    """Load a Pearl agent from a saved .pth checkpoint."""
+    agent, _shield = _make_agent(total_timesteps=100_000, shielded=shielded)
+    ckpt = torch.load(model_path, weights_only=False)
+    agent.load_state_dict(ckpt["agent_state"])
+    return agent
 
 
-def run_episode(env, agent, render: bool = False) -> dict:
-    """
-    Run one episode and return a metrics dict.
+def run_pearl_episode(env, agent, render: bool = False) -> dict:
+    """Run one greedy episode with a Pearl agent (no replay-buffer writes)."""
+    pl = agent.policy_learner
+    sm = agent.safety_module
+    device = agent.device
 
-    agent must expose  predict(obs, deterministic=True) → (action, state).
-    """
+    obs, action_space = env.reset()
+    done = False
+    ep_reward = 0.0
+    ep_speeds: list[float] = []
+    ep_crashed = False
+
+    while not done:
+        if render:
+            try:
+                env._env.render()
+            except Exception:
+                pass
+
+        obs_t = torch.as_tensor(obs).to(device)
+        action_space.to(device)
+        safe_space = sm.filter_action(obs_t, action_space)
+        safe_space.to(device)
+        action = pl.act(
+            subjective_state=obs_t, available_action_space=safe_space, exploit=True
+        )
+
+        action_result = env.step(action)
+        ep_reward += float(action_result.reward)
+        info = action_result.info or {}
+        ep_speeds.append(float(info.get("speed", 0.0)))
+        ep_crashed = ep_crashed or bool(info.get("crashed", False))
+        obs = action_result.observation
+        action_space = action_result.available_action_space or env.action_space
+        done = action_result.done
+
+    return {
+        "reward": ep_reward,
+        "mean_speed": float(np.mean(ep_speeds)) if ep_speeds else 0.0,
+        "crashed": int(ep_crashed),
+        "steps": len(ep_speeds),
+    }
+
+
+def run_symbolic_episode(env, agent: SymbolicAgent, render: bool = False) -> dict:
+    """Run one episode with the rule-based symbolic agent."""
     obs, _ = env.reset()
     done = truncated = False
     ep_reward = 0.0
-    ep_speeds = []
+    ep_speeds: list[float] = []
     ep_crashed = False
 
     while not (done or truncated):
@@ -62,17 +110,29 @@ def run_episode(env, agent, render: bool = False) -> dict:
     }
 
 
-def evaluate_agent(
-    agent,
-    env,
-    n_episodes: int,
-    label: str,
-    render: bool = False,
+def evaluate_pearl(
+    agent, env, n_episodes: int, label: str, render: bool = False
 ) -> list[dict]:
     print(f"\n── {label} ({n_episodes} episodes) ──")
     results = []
     for i in range(n_episodes):
-        ep = run_episode(env, agent, render=render)
+        ep = run_pearl_episode(env, agent, render=render)
+        results.append(ep)
+        print(
+            f"  ep {i + 1:>3d}  reward={ep['reward']:+.3f}  "
+            f"speed={ep['mean_speed']:.1f} m/s  "
+            f"crash={'YES' if ep['crashed'] else ' no'}"
+        )
+    return results
+
+
+def evaluate_symbolic(
+    agent, env, n_episodes: int, label: str, render: bool = False
+) -> list[dict]:
+    print(f"\n── {label} ({n_episodes} episodes) ──")
+    results = []
+    for i in range(n_episodes):
+        ep = run_symbolic_episode(env, agent, render=render)
         results.append(ep)
         print(
             f"  ep {i + 1:>3d}  reward={ep['reward']:+.3f}  "
@@ -96,56 +156,54 @@ def summarise(results: list[dict]) -> dict:
     }
 
 
-# ── main ──────────────────────────────────────────────────────────────────────
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate and compare agents")
     parser.add_argument("--episodes", type=int, default=N_EVAL_EPISODES)
     parser.add_argument("--render", action="store_true")
-    parser.add_argument("--neural-model", default="models/neural/best_model")
-    parser.add_argument("--neurosymbolic-model", default="models/neurosymbolic/best_model")
+    parser.add_argument("--neural-model", default="models/neural/model.pth")
+    parser.add_argument(
+        "--neurosymbolic-model", default="models/neurosymbolic/model.pth"
+    )
     args = parser.parse_args()
 
     os.makedirs("results", exist_ok=True)
     all_results: dict[str, list[dict]] = {}
 
-    # ── 1. Pure Neural ────────────────────────────────────────────────────────
-    if os.path.exists(args.neural_model + ".zip"):
-        env = make_eval_env(shielded=False)
-        model = DQN.load(args.neural_model, env=env)
-        all_results["neural"] = evaluate_agent(
-            model, env, args.episodes, "Pure Neural (DQN)", args.render
+    # ── 1. Pure Neural (Pearl DQN) ────────────────────────────────────────────
+    if os.path.exists(args.neural_model):
+        env = make_pearl_eval_env(shielded=False)
+        agent = load_pearl_agent(args.neural_model, shielded=False)
+        all_results["neural"] = evaluate_pearl(
+            agent, env, args.episodes, "Pure Neural (Pearl DQN)", args.render
         )
         env.close()
     else:
-        print(f"[SKIP] Neural model not found at {args.neural_model}.zip")
+        print(f"[SKIP] Neural model not found at {args.neural_model}")
         print("       Run  python train_all.py --agent neural  first.")
 
     # ── 2. Pure Symbolic ─────────────────────────────────────────────────────
-    env = make_eval_env(shielded=False)
-    all_results["symbolic"] = evaluate_agent(
-        SymbolicAgent(), env, args.episodes, "Pure Symbolic (FSM)", args.render
+    sym_env = make_eval_env(shielded=False)
+    all_results["symbolic"] = evaluate_symbolic(
+        SymbolicAgent(), sym_env, args.episodes, "Pure Symbolic (FSM)", args.render
     )
-    env.close()
+    sym_env.close()
 
-    # ── 3. NeuroSymbolic (Shielded DQN) ──────────────────────────────────────
-    if os.path.exists(args.neurosymbolic_model + ".zip"):
-        env = make_eval_env(shielded=True)
-        model = DQN.load(args.neurosymbolic_model, env=env)
-        all_results["neurosymbolic"] = evaluate_agent(
-            model, env, args.episodes, "NeuroSymbolic (Shielded DQN)", args.render
+    # ── 3. NeuroSymbolic (Shielded Pearl DQN) ────────────────────────────────
+    if os.path.exists(args.neurosymbolic_model):
+        env = make_pearl_eval_env(shielded=True)
+        agent = load_pearl_agent(args.neurosymbolic_model, shielded=True)
+        all_results["neurosymbolic"] = evaluate_pearl(
+            agent, env, args.episodes, "NeuroSymbolic (Shielded Pearl DQN)", args.render
         )
-
-        if isinstance(env, ShieldedEnv):
-            print(f"  Shield override rate (eval): {env.shield.override_rate:.2%}")
+        if hasattr(env, "filter_rate"):
+            print(f"  Shield filter rate (eval): {env.filter_rate:.2%}")
         env.close()
     else:
-        print(f"[SKIP] Neurosymbolic model not found at {args.neurosymbolic_model}.zip")
+        print(f"[SKIP] Neurosymbolic model not found at {args.neurosymbolic_model}")
         print("       Run  python train_all.py --agent neurosymbolic  first.")
 
     # ── summary table ─────────────────────────────────────────────────────────
-    summaries: dict[str, dict] = {k: summarise(v) for k, v in all_results.items()}
+    summaries = {k: summarise(v) for k, v in all_results.items()}
 
     print("\n" + "=" * 65)
     print(f"{'Agent':<20} {'Reward':>10} {'Speed':>10} {'Crash%':>8}")
@@ -159,7 +217,6 @@ def main() -> None:
         )
     print("=" * 65)
 
-    # ── save ──────────────────────────────────────────────────────────────────
     with open("results/comparison.json", "w") as f:
         json.dump(all_results, f, indent=2)
     with open("results/summary.json", "w") as f:
