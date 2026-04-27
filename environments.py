@@ -28,7 +28,7 @@ ShieldedEnv
 
 import gymnasium as gym
 import numpy as np
-import highway_env  # noqa: F401 — registers highway-v0 etc.
+import highway_env  # pyright: ignore[reportMissingImports] — registers highway-v0 etc.  # noqa: F401
 
 from safety_shield import LTLSafetyShield
 from config import BASE_ENV_CONFIG, EVAL_ENV_CONFIG, SHIELD_OVERRIDE_PENALTY
@@ -85,7 +85,7 @@ class ShieldedEnv(gym.Wrapper):
 
         overridden = safe_action != int(action)
         if overridden:
-            reward -= SHIELD_OVERRIDE_PENALTY
+            reward -= SHIELD_OVERRIDE_PENALTY  # type: ignore
 
         info["shield_override"] = int(overridden)
         info["proposed_action"] = int(action)

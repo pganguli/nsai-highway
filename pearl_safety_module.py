@@ -26,7 +26,6 @@ from pearl.utils.instantiations.spaces.discrete_action import DiscreteActionSpac
 
 from safety_shield import LTLSafetyShield
 from config import N_OBS_VEHICLES, N_FEATURES
-from pearl_environment import N_ACTIONS
 
 
 class LTLShieldSafetyModule(SafetyModule):
@@ -67,7 +66,7 @@ class LTLShieldSafetyModule(SafetyModule):
 
         safe = [
             a
-            for a in action_space.actions
+            for a in action_space.actions  # pyright: ignore[reportAttributeAccessIssue]
             if self._shield.is_action_safe(obs_2d, int(a.item()))
         ]
 

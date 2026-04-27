@@ -20,14 +20,18 @@ ShieldedHighwayPearlEnv
 import numpy as np
 import torch
 import gymnasium as gym
-import highway_env  # noqa: F401
+import highway_env  # pyright: ignore[reportMissingImports] # noqa: F401
 
 from pearl.api.environment import Environment
 from pearl.api.action_result import ActionResult
 from pearl.utils.instantiations.spaces.discrete_action import DiscreteActionSpace
 
 from safety_shield import LTLSafetyShield
-from config import BASE_ENV_CONFIG, EVAL_ENV_CONFIG, N_OBS_VEHICLES, N_FEATURES, SHIELD_OVERRIDE_PENALTY
+from config import (
+    BASE_ENV_CONFIG,
+    EVAL_ENV_CONFIG,
+    SHIELD_OVERRIDE_PENALTY,
+)
 
 
 N_ACTIONS = 5
@@ -73,7 +77,7 @@ class HighwayPearlEnv(Environment):
     def __init__(self, gym_env: gym.Env) -> None:
         self._env = gym_env
 
-    def reset(self) -> tuple[torch.Tensor, DiscreteActionSpace]:
+    def reset(self) -> tuple[torch.Tensor, DiscreteActionSpace]:  # pyright: ignore[reportIncompatibleMethodOverride]
         obs, _info = self._env.reset()
         return _flatten(obs), _full_action_space()
 
@@ -93,7 +97,7 @@ class HighwayPearlEnv(Environment):
         return _full_action_space()
 
     @property
-    def observation_space(self):
+    def observation_space(self):  # pyright: ignore[reportIncompatibleMethodOverride]
         return self._env.observation_space
 
     def close(self) -> None:
@@ -139,7 +143,7 @@ class ShieldedHighwayPearlEnv(HighwayPearlEnv):
         # rather than stalling in traffic where only SLOWER is safe.
         n_restricted = N_ACTIONS - len(avail.actions)
         if n_restricted > 0:
-            reward -= SHIELD_OVERRIDE_PENALTY * (n_restricted / N_ACTIONS)
+            reward -= SHIELD_OVERRIDE_PENALTY * (n_restricted / N_ACTIONS)  # type: ignore
 
         return ActionResult(
             observation=_flatten(obs),

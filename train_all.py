@@ -44,7 +44,7 @@ from tqdm import tqdm
 
 sys.path.insert(0, os.path.dirname(__file__))
 
-import highway_env  # noqa: F401
+import highway_env  # pyright: ignore[reportMissingImports] # noqa: F401
 
 from pearl.pearl_agent import PearlAgent
 from pearl.action_representation_modules.one_hot_action_representation_module import (
@@ -73,7 +73,7 @@ from safety_shield import LTLSafetyShield
 STATE_DIM = N_OBS_VEHICLES * N_FEATURES  # 50
 
 
-def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
+def _make_agent(total_timesteps: int, shielded: bool = False) -> tuple[PearlAgent, LTLSafetyShield | None]:
     """Construct a Pearl Double-DQN+PER+DeepSet agent."""
     exploration_module = EGreedyExploration(
         epsilon=0.05,
@@ -85,9 +85,9 @@ def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
     network = DeepSetQNetwork(
         n_vehicles=N_OBS_VEHICLES,
         n_features=N_FEATURES,
-        action_dim=N_ACTIONS,          # one-hot action representation
-        phi_hidden=[64, 64],           # per-vehicle encoder
-        rho_hidden=[256, 256],         # Q-value head
+        action_dim=N_ACTIONS,  # one-hot action representation
+        phi_hidden=[64, 64],  # per-vehicle encoder
+        rho_hidden=[256, 256],  # Q-value head
     )
 
     policy_learner = DoubleDQNWithPER(
@@ -99,7 +99,7 @@ def _make_agent(total_timesteps: int, shielded: bool = False) -> PearlAgent:
         training_rounds=DQN_KWARGS["gradient_steps"],
         batch_size=DQN_KWARGS["batch_size"],
         target_update_freq=DQN_KWARGS["target_update_interval"],
-        soft_update_tau=1.0,           # hard target update
+        soft_update_tau=1.0,  # hard target update
         exploration_module=exploration_module,
         action_representation_module=OneHotActionTensorRepresentationModule(
             max_number_actions=N_ACTIONS,
@@ -126,8 +126,10 @@ def _latest_checkpoint(ckpt_dir: str) -> str | None:
     files = glob.glob(os.path.join(ckpt_dir, "pearl_model_*_steps.pth"))
     if not files:
         return None
+
     def _step(p: str) -> int:
         return int(os.path.basename(p).split("_")[2])
+
     return max(files, key=_step)
 
 
@@ -166,8 +168,10 @@ def _eval_agent(
             obs_t = torch.as_tensor(obs).to(device)
             action_space.to(device)
             safe_space = sm.filter_action(obs_t, action_space)
-            safe_space.to(device)
-            action = pl.act(subjective_state=obs_t, available_action_space=safe_space, exploit=True)
+            safe_space.to(device)  # pyright: ignore[reportAttributeAccessIssue]
+            action = pl.act(
+                subjective_state=obs_t, available_action_space=safe_space, exploit=True
+            )
 
             action_result = eval_env.step(action)
             ep_reward += float(action_result.reward)
@@ -217,12 +221,12 @@ def _train(
 
     # Share the same shield instance between env wrapper and safety module
     if shielded and shield is not None:
-        env.shield = shield
+        env.shield = shield  # pyright: ignore[reportAttributeAccessIssue]
         if hasattr(env, "shield"):
             # Replace the env's auto-created shield with our named one
-            env.shield = shield
+            env.shield = shield  # pyright: ignore[reportAttributeAccessIssue]
 
-    agent, _shield = _make_agent(timesteps, shielded=shielded)
+    agent, _shield = _make_agent(timesteps, shielded=shielded)  # pyright: ignore[reportGeneralTypeIssues]
 
     # Resume from checkpoint
     start_step = 0
@@ -272,9 +276,7 @@ def _train(
 
             # Periodic checkpoint
             if ckpt_freq > 0 and (step_in_run + 1) % ckpt_freq == 0:
-                ckpt_path = os.path.join(
-                    ckpt_dir, f"pearl_model_{t + 1}_steps.pth"
-                )
+                ckpt_path = os.path.join(ckpt_dir, f"pearl_model_{t + 1}_steps.pth")
                 torch.save(
                     {
                         "agent_state": agent.state_dict(),
@@ -286,7 +288,9 @@ def _train(
 
             # Periodic evaluation
             if (step_in_run + 1) % EVAL_FREQ == 0:
-                ep_rewards, crash_r, mean_sp = _eval_agent(agent, eval_env, n_episodes=5)
+                ep_rewards, crash_r, mean_sp = _eval_agent(
+                    agent, eval_env, n_episodes=5
+                )
                 mean_r = float(np.mean(ep_rewards))
                 std_r = float(np.std(ep_rewards))
 
@@ -315,8 +319,7 @@ def _train(
                     f"\n  [{t + 1:>7d}] "
                     f"reward={mean_r:.3f}±{std_r:.2f}  "
                     f"crash={crash_r:.2f}  "
-                    f"speed={mean_sp:.1f} m/s"
-                    + ("  ★ new best" if is_best else "")
+                    f"speed={mean_sp:.1f} m/s" + ("  ★ new best" if is_best else "")
                 )
                 with open(curve_path, "w") as f:
                     json.dump({"curve": curve}, f, indent=2)
@@ -337,8 +340,8 @@ def _train(
         data = json.load(f)
     data["training_seconds"] = elapsed
     if shielded and hasattr(env, "filter_rate"):
-        data["final_shield_filter_rate"] = env.filter_rate
-        print(f"  Shield filter rate during training: {env.filter_rate:.2%}")
+        data["final_shield_filter_rate"] = env.filter_rate  # pyright: ignore[reportAttributeAccessIssue]
+        print(f"  Shield filter rate during training: {env.filter_rate:.2%}")  # pyright: ignore[reportAttributeAccessIssue]
     with open(curve_path, "w") as f:
         json.dump(data, f, indent=2)
 
@@ -364,7 +367,9 @@ def train_neural(timesteps: int, seed: int, resume: bool, ckpt_freq: int) -> Non
     )
 
 
-def train_neurosymbolic(timesteps: int, seed: int, resume: bool, ckpt_freq: int) -> None:
+def train_neurosymbolic(
+    timesteps: int, seed: int, resume: bool, ckpt_freq: int
+) -> None:
     print("\n=== Training NEUROSYMBOLIC (Pearl Shielded DQN) ===")
     _train(
         label="Shielded DQN",
@@ -380,20 +385,29 @@ def train_neurosymbolic(timesteps: int, seed: int, resume: bool, ckpt_freq: int)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Train highway agents with Pearl DQN")
-    parser.add_argument("--agent", choices=["neural", "neurosymbolic", "all"], default="all")
+    parser.add_argument(
+        "--agent", choices=["neural", "neurosymbolic", "all"], default="all"
+    )
     parser.add_argument("--timesteps", type=int, default=TOTAL_TIMESTEPS)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--resume", action="store_true",
-                        help="continue from the latest checkpoint")
-    parser.add_argument("--checkpoint-freq", type=int, default=EVAL_FREQ,
-                        help="save a checkpoint every N timesteps (default: EVAL_FREQ)")
+    parser.add_argument(
+        "--resume", action="store_true", help="continue from the latest checkpoint"
+    )
+    parser.add_argument(
+        "--checkpoint-freq",
+        type=int,
+        default=EVAL_FREQ,
+        help="save a checkpoint every N timesteps (default: EVAL_FREQ)",
+    )
     args = parser.parse_args()
 
     if args.agent in ("neural", "all"):
         train_neural(args.timesteps, args.seed, args.resume, args.checkpoint_freq)
 
     if args.agent in ("neurosymbolic", "all"):
-        train_neurosymbolic(args.timesteps, args.seed, args.resume, args.checkpoint_freq)
+        train_neurosymbolic(
+            args.timesteps, args.seed, args.resume, args.checkpoint_freq
+        )
 
     print("\nTraining complete.  Run  python evaluate.py  to compare all agents.")
 
