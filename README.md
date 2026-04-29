@@ -62,7 +62,7 @@ $$r = \frac{r_{\text{raw}} + 1}{1.5} \cdot \mathbf{1}[\text{on road}]$$
 
 where
 
-$$r_{\text{speed}} = \operatorname{clip}\!\left(\frac{v - 20}{10},\, 0,\, 1\right), \qquad r_{\text{lane}} = \frac{k}{K - 1}$$
+$$r_{\text{speed}} = \mathrm{clip}\!\left(\frac{v - 20}{10},\, 0,\, 1\right), \qquad r_{\text{lane}} = \frac{k}{K - 1}$$
 
 $v$ is forward speed in m/s, $k$ is the lane index from the left, and $K = 4$ is the total lane count. A crash or going off-road zeroes the reward and terminates the episode.
 
@@ -195,10 +195,10 @@ The shield enforces the following globally-valid ($G$) LTL formulae:
 
 $$
 \begin{aligned}
-\varphi_1: &\quad G\bigl(\text{dist\_front} > 20\,\text{m}\bigr) & &\text{(no tailgating)} \\
-\varphi_2: &\quad G\bigl(\text{ttc\_front} > 2.0\,\text{s}\bigr) & &\text{(safe time-to-collision)} \\
-\varphi_3: &\quad G\bigl(\text{LANE\_LEFT} \Rightarrow \neg\,\text{obstacle\_left}\bigr) & &\text{(left lane clear before merging)} \\
-\varphi_4: &\quad G\bigl(\text{LANE\_RIGHT} \Rightarrow \neg\,\text{obstacle\_right}\bigr) & &\text{(right lane clear before merging)}
+\varphi_1: &\quad G\bigl(d_{\text{front}} > 20\,\text{m}\bigr) & &\text{(no tailgating)} \\
+\varphi_2: &\quad G\bigl(\tau_{\text{front}} > 2.0\,\text{s}\bigr) & &\text{(safe time-to-collision)} \\
+\varphi_3: &\quad G\bigl(\text{LaneLeft} \Rightarrow \neg\,o_{\text{left}}\bigr) & &\text{(left lane clear before merging)} \\
+\varphi_4: &\quad G\bigl(\text{LaneRight} \Rightarrow \neg\,o_{\text{right}}\bigr) & &\text{(right lane clear before merging)}
 \end{aligned}
 $$
 
@@ -222,7 +222,7 @@ where the maximization is restricted to feasible next-state actions. Without thi
 
 #### Pearl SafetyModule
 
-`LTLShieldSafetyModule` implements Pearl's `SafetyModule` ABC and provides `filter_action(state, action_space) → safe_action_space`. It reshapes the flat state tensor to 2-D (vehicles × features), evaluates $\varphi_1$–$\varphi_4$ for each candidate action, and returns only the safe subset. This module and `ShieldedHighwayPearlEnv` share the same shield predicates to guarantee consistency.
+`LTLShieldSafetyModule` implements Pearl's `SafetyModule` ABC and provides `filter_action(state, action_space) → safe_action_space`. It reshapes the flat state tensor to 2-D (vehicles × features), evaluates $\varphi_1\text{–}\varphi_4$ for each candidate action, and returns only the safe subset. This module and `ShieldedHighwayPearlEnv` share the same shield predicates to guarantee consistency.
 
 #### Override Penalty
 
@@ -347,7 +347,7 @@ Two episodes per agent — one successful run and one crash (both with > 5 steps
 
 ## Limitations
 
-- **Partial predicate coverage:** the shield encodes only four safety predicates ($\varphi_1$–$\varphi_4$). Crash scenarios arising from cut-ins faster than the TTC threshold, multi-vehicle simultaneous threats, or off-road excursions are not explicitly constrained.
+- **Partial predicate coverage:** the shield encodes only four safety predicates ($\varphi_1\text{–}\varphi_4$). Crash scenarios arising from cut-ins faster than the TTC threshold, multi-vehicle simultaneous threats, or off-road excursions are not explicitly constrained.
 
 - **Predicate-based approximation:** the shield evaluates simple closed-form conditions rather than a full LTL model checker, so it is LTL-*inspired* rather than a formally verified shield in the theorem-proving sense.
 
