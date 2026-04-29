@@ -4,10 +4,10 @@ Evaluate and compare all three agents.
 
 Usage
 -----
-  python evaluate.py                    # evaluate all, use default model paths
+  python evaluate.py                    # evaluate all, record MP4s by default
   python evaluate.py --episodes 30
   python evaluate.py --render           # show environment window
-  python evaluate.py --video            # record MP4s to results/videos/
+  python evaluate.py --no-video         # skip MP4 recording
 
 Outputs
 -------
@@ -221,10 +221,12 @@ def main() -> None:
     parser.add_argument("--episodes", type=int, default=N_EVAL_EPISODES)
     parser.add_argument("--render", action="store_true")
     parser.add_argument(
-        "--video",
-        action="store_true",
-        help="record MP4 for every episode into results/videos/",
+        "--no-video",
+        dest="video",
+        action="store_false",
+        help="disable MP4 recording",
     )
+    parser.set_defaults(video=True)
     parser.add_argument("--neural-model", default="models/neural/best_model.pth")
     parser.add_argument(
         "--neurosymbolic-model", default="models/neurosymbolic/best_model.pth"
