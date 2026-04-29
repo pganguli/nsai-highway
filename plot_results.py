@@ -27,10 +27,11 @@ import matplotlib.ticker as ticker
 import numpy as np
 
 FIGURES_DIR = "results/figures"
+EARLY_CRASH_STEPS = 5  # episodes crashed at or before this step are treated as spawn-induced
 COLORS = {
-    "neural": "#E74C3C",  # red
-    "symbolic": "#2ECC71",  # green
-    "neurosymbolic": "#3498DB",  # blue
+    "neural": "#E69F00",        # Okabe-Ito orange
+    "symbolic": "#56B4E9",      # Okabe-Ito sky blue
+    "neurosymbolic": "#009E73", # Okabe-Ito bluish-green
 }
 LABELS = {
     "neural": "Pure Neural (Pearl DQN)",
@@ -263,6 +264,97 @@ def plot_reward_distribution() -> None:
     plt.close(fig)
 
 
+# ── Fig 5: bar comparison excluding early-crash episodes ─────────────────────
+
+
+def plot_bar_comparison_filtered() -> None:
+    comparison = load_json("results/comparison.json")
+    if comparison is None:
+        return
+
+    agents = [a for a in ("neural", "symbolic", "neurosymbolic") if a in comparison]
+    if not agents:
+        return
+
+    def _stats(eps: list) -> dict | None:
+        kept = [e for e in eps if not (e["crashed"] and e["steps"] <= EARLY_CRASH_STEPS)]
+        n = len(kept)
+        if n == 0:
+            return None
+        rewards = [e["reward"] for e in kept]
+        speeds = [e["mean_speed"] for e in kept]
+        crashes = [e["crashed"] for e in kept]
+        return {
+            "mean_reward": float(np.mean(rewards)),
+            "std_reward": float(np.std(rewards)),
+            "mean_speed": float(np.mean(speeds)),
+            "std_speed": float(np.std(speeds)),
+            "crash_rate": float(np.mean(crashes)),
+            "n": n,
+        }
+
+    stats = {a: _stats(comparison[a]) for a in agents}
+    agents = [a for a in agents if stats[a] is not None]
+    if not agents:
+        return
+
+    ns_label = ", ".join(f"{a}: n={stats[a]['n']}" for a in agents)
+    metrics = [
+        ("mean_reward", "std_reward", "Mean episode reward", None),
+        ("mean_speed", "std_speed", "Mean speed (m/s)", None),
+        ("crash_rate", None, "Crash rate", "%"),
+    ]
+    x = np.arange(len(agents))
+    width = 0.55
+
+    fig, axes = plt.subplots(1, 3, figsize=(13, 4.5))
+
+    for ax, (metric, std_key, title, fmt) in zip(axes, metrics):
+        vals = [stats[a][metric] for a in agents]
+        errs = [stats[a][std_key] for a in agents] if std_key else None
+        cols = [COLORS[a] for a in agents]
+        bars = ax.bar(
+            x,
+            vals,
+            width,
+            yerr=errs,
+            color=cols,
+            capsize=4,
+            edgecolor="white",
+            linewidth=0.8,
+        )
+        ax.set_xticks(x)
+        ax.set_xticklabels(
+            [LABELS[a] for a in agents], fontsize=8, rotation=15, ha="right"
+        )
+        ax.set_title(title, fontsize=10)
+        ax.grid(True, axis="y", alpha=0.3)
+        if fmt == "%":
+            ax.yaxis.set_major_formatter(ticker.PercentFormatter(xmax=1))
+        for bar, val in zip(bars, vals):
+            label = f"{val:.1%}" if fmt == "%" else f"{val:.2f}"
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + (max(vals) * 0.01),
+                label,
+                ha="center",
+                va="bottom",
+                fontsize=8,
+            )
+
+    fig.suptitle(
+        f"Agent Comparison (early crashes ≤{EARLY_CRASH_STEPS} steps excluded)\n"
+        f"Reward / Speed / Safety  [{ns_label}]",
+        fontsize=11,
+        fontweight="bold",
+    )
+    fig.tight_layout()
+    path = os.path.join(FIGURES_DIR, "fig5_bar_comparison_filtered.svg")
+    fig.savefig(path)
+    print(f"Saved {path}")
+    plt.close(fig)
+
+
 # ── entry point ───────────────────────────────────────────────────────────────
 
 
@@ -272,6 +364,7 @@ def main() -> None:
     plot_bar_comparison()
     plot_shield_override()
     plot_reward_distribution()
+    plot_bar_comparison_filtered()
     print(f"\nAll figures saved to {FIGURES_DIR}/")
 
 
