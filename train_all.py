@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Train all learnable agents using Pearl DQN and save results.
 

@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """
 Evaluate and compare all three agents.
 
@@ -76,7 +77,8 @@ def _make_symbolic_video_env(video_dir: str) -> gym.Env:
 def load_pearl_agent(model_path: str, shielded: bool = False) -> object:
     """Load a Pearl agent from a saved .pth checkpoint."""
     agent, _shield = _make_agent(total_timesteps=100_000, shielded=shielded)  # pyright: ignore[reportGeneralTypeIssues]
-    ckpt = torch.load(model_path, weights_only=False)
+    map_loc = None if torch.cuda.is_available() else "cpu"
+    ckpt = torch.load(model_path, weights_only=False, map_location=map_loc)
     agent.load_state_dict(ckpt["agent_state"])
     return agent
 
@@ -223,9 +225,9 @@ def main() -> None:
         action="store_true",
         help="record MP4 for every episode into results/videos/",
     )
-    parser.add_argument("--neural-model", default="models/neural/model.pth")
+    parser.add_argument("--neural-model", default="models/neural/best_model.pth")
     parser.add_argument(
-        "--neurosymbolic-model", default="models/neurosymbolic/model.pth"
+        "--neurosymbolic-model", default="models/neurosymbolic/best_model.pth"
     )
     args = parser.parse_args()
 
