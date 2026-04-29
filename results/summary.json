@@ -1,26 +1,26 @@
 {
   "neural": {
-    "mean_reward": 42.802198352250706,
-    "std_reward": 19.4402510021603,
-    "mean_speed": 27.502094410079565,
-    "std_speed": 2.086765033043127,
-    "crash_rate": 0.35,
-    "n_episodes": 20
+    "mean_reward": 45.733430235467246,
+    "std_reward": 16.3249836174852,
+    "mean_speed": 27.389812472549238,
+    "std_speed": 1.9476217080915876,
+    "crash_rate": 0.27,
+    "n_episodes": 100
   },
   "symbolic": {
-    "mean_reward": 35.59239988786577,
-    "std_reward": 17.22465137937567,
-    "mean_speed": 23.885876145015743,
-    "std_speed": 2.402516182087298,
-    "crash_rate": 0.3,
-    "n_episodes": 20
+    "mean_reward": 38.29786958245166,
+    "std_reward": 14.833066054438781,
+    "mean_speed": 22.951729568426114,
+    "std_speed": 1.8046771121275627,
+    "crash_rate": 0.25,
+    "n_episodes": 100
   },
   "neurosymbolic": {
-    "mean_reward": 44.77029540637707,
-    "std_reward": 7.080234744841874,
-    "mean_speed": 23.165249641396848,
-    "std_speed": 1.3206519446794789,
-    "crash_rate": 0.05,
-    "n_episodes": 20
+    "mean_reward": 40.80013333479905,
+    "std_reward": 11.440204782336684,
+    "mean_speed": 23.027143952712336,
+    "std_speed": 1.3207826174641621,
+    "crash_rate": 0.18,
+    "n_episodes": 100
   }
 }
