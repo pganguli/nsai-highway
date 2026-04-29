@@ -4,11 +4,11 @@ Generate comparison figures from saved results.
 
 Figures produced (saved to results/figures/)
 --------------------------------------------
-  fig1_training_curves.png   Episode reward vs training timestep
+  fig1_training_curves.svg   Episode reward vs training timestep
                              (neural vs neurosymbolic)
-  fig2_bar_comparison.png    Bar charts: reward / speed / crash rate
+  fig2_bar_comparison.svg    Bar charts: reward / speed / crash rate
                              for all three agents
-  fig3_shield_override.png   Shield override rate over training
+  fig3_shield_override.svg   Shield override rate over training
                              (neurosymbolic only)
 
 Usage
@@ -96,8 +96,8 @@ def plot_training_curves() -> None:
         "Training Progress: Neural vs NeuroSymbolic", fontsize=13, fontweight="bold"
     )
     fig.tight_layout()
-    path = os.path.join(FIGURES_DIR, "fig1_training_curves.png")
-    fig.savefig(path, dpi=150)
+    path = os.path.join(FIGURES_DIR, "fig1_training_curves.svg")
+    fig.savefig(path)
     print(f"Saved {path}")
     plt.close(fig)
 
@@ -162,8 +162,8 @@ def plot_bar_comparison() -> None:
         "Agent Comparison: Reward / Speed / Safety", fontsize=13, fontweight="bold"
     )
     fig.tight_layout()
-    path = os.path.join(FIGURES_DIR, "fig2_bar_comparison.png")
-    fig.savefig(path, dpi=150)
+    path = os.path.join(FIGURES_DIR, "fig2_bar_comparison.svg")
+    fig.savefig(path)
     print(f"Saved {path}")
     plt.close(fig)
 
@@ -223,8 +223,8 @@ def plot_shield_override() -> None:
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    path = os.path.join(FIGURES_DIR, "fig3_shield_filter.png")
-    fig.savefig(path, dpi=150)
+    path = os.path.join(FIGURES_DIR, "fig3_shield_filter.svg")
+    fig.savefig(path)
     print(f"Saved {path}")
     plt.close(fig)
 
@@ -257,8 +257,8 @@ def plot_reward_distribution() -> None:
     ax.legend(fontsize=9)
     ax.grid(True, alpha=0.3)
     fig.tight_layout()
-    path = os.path.join(FIGURES_DIR, "fig4_reward_distribution.png")
-    fig.savefig(path, dpi=150)
+    path = os.path.join(FIGURES_DIR, "fig4_reward_distribution.svg")
+    fig.savefig(path)
     print(f"Saved {path}")
     plt.close(fig)
 
