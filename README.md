@@ -9,6 +9,8 @@ A comparative study of three approaches to autonomous highway driving in the [hi
 - [Neuro-Symbolic Highway Driving Agent](#neuro-symbolic-highway-driving-agent)
   - [Table of Contents](#table-of-contents)
   - [Task Description](#task-description)
+    - [Observation Space](#observation-space)
+    - [Action Space](#action-space)
     - [Reward Function](#reward-function)
   - [Approaches](#approaches)
     - [Approach 1: Pure Neural (Pearl DQN)](#approach-1-pure-neural-pearl-dqn)
@@ -42,7 +44,28 @@ A comparative study of three approaches to autonomous highway driving in the [hi
 
 ## Task Description
 
-The agent controls an ego vehicle on a 4-lane highway populated with 50 other vehicles. At each time-step the agent receives a kinematic observation of the 10 nearest vehicles — sorted by longitudinal distance — with 5 features each (presence, $x$, $y$, $v_x$, $v_y$, normalized and ego-relative) and must select one of five meta-actions:
+The agent controls an ego vehicle on a 4-lane highway populated with 50 other vehicles. At each time-step the agent receives a kinematic observation and must select one of five meta-actions.
+
+### Observation Space
+
+The observation is a **10 × 5** matrix (type `Kinematics`), flattened to a 50-dimensional vector before being fed to the network. Each row represents one vehicle slot; the first row is always the ego vehicle.
+
+| Feature | Description | Frame | Normalized range |
+| ------- | ----------- | ----- | ---------------- |
+| `presence` | 1 if slot is occupied, 0 if padding | — | {0, 1} |
+| `x` | Longitudinal distance from ego (+forward) | ego-relative | [-1, 1] (±100 m) |
+| `y` | Lateral distance from ego (+right) | ego-relative | [-1, 1] (±100 m) |
+| `vx` | Relative longitudinal speed | ego-relative | [-1, 1] (±30 m/s) |
+| `vy` | Relative lateral speed | ego-relative | [-1, 1] (±30 m/s) |
+
+**Key properties:**
+
+- Rows are sorted by longitudinal distance (closest first).
+- `see_behind=True` — vehicles behind the ego are included, which allows the shield to detect fast-approaching cut-ins and rear occupants of target lanes.
+- The ego row always has $x = y = v_x = v_y = 0$ and `presence = 1`; its absolute speed is not directly observable.
+- Unoccupied slots are zero-padded (`presence = 0`).
+
+### Action Space
 
 | Action ID | Action |
 |-----------|--------|
