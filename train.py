@@ -4,11 +4,11 @@ Train all learnable agents using Pearl DQN and save results.
 
 Usage
 -----
-  python train_all.py               # train both neural and neurosymbolic
-  python train_all.py --agent neural
-  python train_all.py --agent neurosymbolic
-  python train_all.py --timesteps 50000
-  python train_all.py --resume      # continue from latest checkpoint
+  python train.py               # train both neural and neurosymbolic
+  python train.py --agent neural
+  python train.py --agent neurosymbolic
+  python train.py --timesteps 50000
+  python train.py --resume      # continue from latest checkpoint
 
 Outputs (written to ./models/ and ./results/)
 -------
@@ -74,7 +74,9 @@ from safety_shield import LTLSafetyShield
 STATE_DIM = N_OBS_VEHICLES * N_FEATURES  # 50
 
 
-def _make_agent(total_timesteps: int, shielded: bool = False) -> tuple[PearlAgent, LTLSafetyShield | None]:
+def _make_agent(
+    total_timesteps: int, shielded: bool = False
+) -> tuple[PearlAgent, LTLSafetyShield | None]:
     """Construct a Pearl Double-DQN+PER+DeepSet agent."""
     exploration_module = EGreedyExploration(
         epsilon=0.05,

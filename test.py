@@ -35,7 +35,7 @@ def _run_training(label: str, shielded: bool, model_dir: str) -> None:
     import highway_env  # pyright: ignore[reportMissingImports] # noqa: F401
     from config import BASE_ENV_CONFIG, DQN_KWARGS
     from pearl_environment import make_pearl_env
-    from train_all import _make_agent
+    from train import _make_agent
 
     os.makedirs(model_dir, exist_ok=True)
     torch.manual_seed(0)
@@ -68,7 +68,7 @@ def _run_training(label: str, shielded: bool, model_dir: str) -> None:
 def _eval_one(shielded: bool, model_path: str) -> int:
     import highway_env  # pyright: ignore[reportMissingImports] # noqa: F401
     from pearl_environment import make_pearl_eval_env
-    from train_all import _make_agent
+    from train import _make_agent
 
     agent, _ = _make_agent(total_timesteps=500, shielded=shielded)
     ckpt = torch.load(model_path, weights_only=False)
@@ -223,14 +223,14 @@ class TestPrioritizedReplayBuffer(unittest.TestCase):
 
 class TestAgentConstruction(unittest.TestCase):
     def test_neural_agent(self):
-        from train_all import _make_agent
+        from train import _make_agent
 
         agent, shield = _make_agent(total_timesteps=500, shielded=False)
         self.assertIsNotNone(agent)
         self.assertIsNone(shield)
 
     def test_shielded_agent(self):
-        from train_all import _make_agent
+        from train import _make_agent
 
         agent, shield = _make_agent(total_timesteps=500, shielded=True)
         self.assertIsNotNone(agent)
@@ -249,7 +249,7 @@ class TestTrainingLoop(unittest.TestCase):
 
 class TestSaveLoad(unittest.TestCase):
     def test_round_trip(self):
-        from train_all import _make_agent
+        from train import _make_agent
 
         path = "models/neural/model_test.pth"
         if not os.path.exists(path):

@@ -38,7 +38,7 @@ from pearl_environment import (
 )
 from symbolic_agent import SymbolicAgent
 from environments import make_eval_env  # plain gym env for symbolic agent
-from train_all import _make_agent
+from train import _make_agent
 
 
 def _make_pearl_video_env(shielded: bool, video_dir: str):
@@ -256,7 +256,7 @@ def main() -> None:
             print("  Videos → results/videos/neural/")
     else:
         print(f"[SKIP] Neural model not found at {args.neural_model}")
-        print("       Run  python train_all.py --agent neural  first.")
+        print("       Run  python train.py --agent neural  first.")
 
     # ── 2. Pure Symbolic ─────────────────────────────────────────────────────
     if args.video:
@@ -299,7 +299,7 @@ def main() -> None:
             print("  Videos → results/videos/neurosymbolic/")
     else:
         print(f"[SKIP] Neurosymbolic model not found at {args.neurosymbolic_model}")
-        print("       Run  python train_all.py --agent neurosymbolic  first.")
+        print("       Run  python train.py --agent neurosymbolic  first.")
 
     # ── summary table ─────────────────────────────────────────────────────────
     summaries = {k: summarise(v) for k, v in all_results.items()}

@@ -28,7 +28,7 @@ echo "CUDA:  $(${PYTHON} -c 'import torch; print(torch.cuda.is_available(), torc
 
 # ── training ──────────────────────────────────────────────────────────────────
 # AGENT defaults to "all"; override with --export=AGENT=neural or =neurosymbolic
-${PYTHON} train_all.py \
+${PYTHON} train.py \
     --agent "${AGENT:-all}" \
     --timesteps "${TIMESTEPS:-100000}" \
     ${EXTRA_ARGS:-}
