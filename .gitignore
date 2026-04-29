@@ -1,3 +1,4 @@
+.vscode/
 models/*/checkpoints/
 
 # Byte-compiled / optimized / DLL files
